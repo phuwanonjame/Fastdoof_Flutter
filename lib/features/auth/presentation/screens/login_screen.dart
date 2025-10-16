@@ -14,37 +14,64 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+// *** เพิ่ม with SingleTickerProviderStateMixin เพื่อรองรับ TabController ***
+class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
+  
+  // Tab Controller (ประกาศแบบ late และจะถูกกำหนดค่าใน initState)
+  late TabController _tabController; 
+
+  final TextEditingController _securityKeyController = TextEditingController();
   
   // 1. สีหลัก (CI Color) ของแอป: สีน้ำเงินสว่าง
-  final Color _primaryColor = const Color(0xFF007AFF); // iOS Blue / FastFood CI
+  final Color _primaryColor = const Color(0xFF007AFF); 
 
   // 2. สีพื้นหลังของ Dark Mode
-  final Color _darkBackgroundColor = const Color(0xFF121212); // ดำเข้ม
+  final Color _darkBackgroundColor = const Color(0xFF121212); 
   final Color _darkCardColor = const Color(0xFF1E1E1E); 
 
-  // ฟังก์ชันจำลองการเข้าสู่ระบบ
-  void _login() {
-    final username = _usernameController.text;
-    final password = _passwordController.text;
+  @override
+  void initState() {
+    super.initState();
+    // สร้าง TabController ที่มี 2 tabs
+    _tabController = TabController(length: 2, vsync: this); 
+  }
 
-    if (username.isNotEmpty && password.isNotEmpty) {
-      // *** เปลี่ยน: นำทางไปยังหน้าเลือกบทบาทแทน MenuScreen ***
+  // ฟังก์ชันจำลองการเข้าสู่ระบบด้วย Security Key
+  void _loginWithSecurityKey() {
+    final key = _securityKeyController.text;
+
+    // จำลอง: อนุญาตให้เข้าสู่ระบบหากมี Pin 4 หลักขึ้นไป (ในแอปจริงต้องตรวจสอบกับ API/DB)
+    if (key.length >= 4) {
+      // *** นำทางไปยังหน้าเลือกบทบาท ***
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
       );
     } else {
-      // แสดงข้อความแจ้งเตือนโดยใช้ SnackBar
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน', style: TextStyle(color: Colors.white)),
+          content: Text('กรุณากรอก Security Key 4 ตัวขึ้นไป', style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.red,
         ),
       );
     }
   }
+  
+  // ฟังก์ชันจำลองการเข้าสู่ระบบด้วย QR Code (สมมติว่า QR Scanner ทำงานเสร็จแล้ว)
+  void _loginWithQRCode() {
+    // ในแอปจริง: โค้ดส่วนนี้จะถูกเรียกหลังจากการสแกนสำเร็จ
+    // ตัวอย่างการจำลองการสแกนสำเร็จ:
+    ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('สแกน QR Code สำเร็จ! กำลังนำทาง...', style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.green,
+        ),
+      );
+    // *** นำทางไปยังหน้าเลือกบทบาท ***
+    Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+    );
+  }
+
 
   // ฟังก์ชันนำทางไปยังหน้าลืมรหัสผ่าน
   void _goToForgotPassword() {
@@ -55,9 +82,97 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    _usernameController.dispose();
-    _passwordController.dispose();
+    _securityKeyController.dispose();
+    _tabController.dispose(); // *** ต้อง dispose TabController ด้วย ***
     super.dispose();
+  }
+
+  // **********************************
+  // WIDGETS สำหรับแต่ละ Tab
+  // **********************************
+  
+  // Tab 1: การเข้าสู่ระบบด้วย Security Key
+  Widget _buildSecurityKeyLogin() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ฟิลด์ Security Key
+        TextField(
+          controller: _securityKeyController,
+          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), 
+          keyboardType: TextInputType.number,
+          obscureText: true, // ซ่อน Pin
+          decoration: InputDecoration(
+            labelText: 'Security Key (รหัสพนักงาน/PIN)',
+            labelStyle: TextStyle(color: Colors.grey[500]),
+            hintText: 'ป้อนรหัส 4-6 หลัก',
+            hintStyle: TextStyle(color: Colors.grey[700]),
+            
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12), 
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder( 
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: _primaryColor, width: 2), 
+            ),
+            filled: true,
+            fillColor: _darkCardColor, 
+            prefixIcon: Icon(Icons.vpn_key, color: Colors.grey[500]),
+          ),
+        ),
+        const SizedBox(height: 30),
+
+        // ปุ่มเข้าสู่ระบบ
+        ElevatedButton(
+          onPressed: _loginWithSecurityKey,
+          style: ElevatedButton.styleFrom(
+            minimumSize: const Size(double.infinity, 56),
+            backgroundColor: _primaryColor, 
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 5,
+          ),
+          child: const Text(
+            'เข้าสู่ระบบด้วยรหัส',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
+    );
+  }
+  
+  // Tab 2: การเข้าสู่ระบบด้วย QR Code
+  Widget _buildQRCodeLogin() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.qr_code_scanner, size: 120, color: _primaryColor),
+          const SizedBox(height: 20),
+          Text(
+            'สแกน QR Code พนักงาน',
+            style: TextStyle(fontSize: 18, color: Colors.grey[400]),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 40),
+          // ปุ่มจำลองการสแกน (ในแอปจริงจะเปิดกล้อง)
+          ElevatedButton.icon(
+            onPressed: _loginWithQRCode, // จำลองการสแกนสำเร็จ
+            icon: const Icon(Icons.camera_alt),
+            label: const Text('เปิดกล้องสแกน QR'),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(200, 50),
+              backgroundColor: Colors.green, 
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -72,103 +187,55 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                const SizedBox(height: 20),
-
-                // โลโก้/ไอคอน FastFood
+                // โลโก้
                 Center(
                   child: Icon(Icons.fastfood, size: 80, color: _primaryColor),
                 ),
                 const SizedBox(height: 20),
-                
-                // ชื่อแอปฯ
-                const Text(
+                Text(
                   'FastFood',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: Colors.white),
+                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: Colors.white),
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'เข้าสู้ระบบเพื่อจัดการร้านของคุณ',
+                  'เข้าสู่ระบบพนักงาน',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 16, color: Colors.grey[400]),
                 ),
                 const SizedBox(height: 40),
-
-                // ฟิลด์ชื่อผู้ใช้
-                TextField(
-                  controller: _usernameController,
-                  style: const TextStyle(color: Colors.white), 
-                  decoration: InputDecoration(
-                    labelText: 'ชื่อผู้ใช้',
-                    labelStyle: TextStyle(color: Colors.grey[500]),
-                    hintText: 'ป้อนชื่อผู้ใช้หรืออีเมล',
-                    hintStyle: TextStyle(color: Colors.grey[700]),
-                    
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12), 
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder( 
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: _primaryColor, width: 2), 
-                    ),
-                    filled: true,
-                    fillColor: _darkCardColor, 
-                    prefixIcon: Icon(Icons.person, color: Colors.grey[500]),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // ฟิลด์รหัสผ่าน
-                TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  style: const TextStyle(color: Colors.white), 
-                  decoration: InputDecoration(
-                    labelText: 'รหัสผ่าน',
-                    labelStyle: TextStyle(color: Colors.grey[500]),
-                    hintText: 'ป้อนรหัสผ่าน',
-                    hintStyle: TextStyle(color: Colors.grey[700]),
-                    
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: _primaryColor, width: 2), 
-                    ),
-                    filled: true,
-                    fillColor: _darkCardColor,
-                    prefixIcon: Icon(Icons.lock, color: Colors.grey[500]),
-                  ),
+                
+                // Tab Bar
+                TabBar(
+                  controller: _tabController,
+                  indicatorColor: _primaryColor,
+                  labelColor: _primaryColor,
+                  unselectedLabelColor: Colors.grey,
+                  tabs: const [
+                    Tab(icon: Icon(Icons.lock), text: 'Security Key'),
+                    Tab(icon: Icon(Icons.qr_code), text: 'QR Code'),
+                  ],
                 ),
                 const SizedBox(height: 30),
-
-                // ปุ่มเข้าสู่ระบบ
-                ElevatedButton(
-                  onPressed: _login,
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 56),
-                    backgroundColor: _primaryColor, 
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 5,
-                  ),
-                  child: const Text(
-                    'เข้าสู่ระบบ',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                
+                // Tab View
+                SizedBox(
+                  height: 300, // กำหนดความสูงเพื่อให้ TabBarView ไม่เกิด Overflow
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildSecurityKeyLogin(),
+                      _buildQRCodeLogin(),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 15),
                 
                 // ลืมรหัสผ่าน (Option)
+                const SizedBox(height: 15),
                 TextButton(
                   onPressed: _goToForgotPassword, 
                   child: Text(
-                    'ลืมรหัสผ่าน?',
+                    'รายงานปัญหา/ลืม Security Key?',
                     style: TextStyle(color: _primaryColor), 
                   ),
                 ),
