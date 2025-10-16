@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-// หน้าจอสำหรับลืมรหัสผ่าน
+// หน้าจอสำหรับลืมรหัสผ่าน (โทนสีขาว - Light Mode)
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -14,9 +14,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   // สีหลัก (CI Color) ของแอป: สีน้ำเงินสว่าง
   final Color _primaryColor = const Color(0xFF007AFF); // iOS Blue / FastFood CI
 
-  // สีพื้นหลังของ Dark Mode
-  final Color _darkBackgroundColor = const Color(0xFF121212); // ดำเข้ม
-  final Color _darkCardColor = const Color(0xFF1E1E1E); 
+  // --- ปรับเปลี่ยนสีสำหรับ Light Mode ---
+  // สีพื้นหลังหลัก
+  final Color _lightBackgroundColor = Colors.white; // สีขาว
+  // สีพื้นหลังสำหรับ Card/TextField (ควรเป็นสีขาวหรือเทาอ่อนมาก)
+  final Color _lightCardColor = const Color(0xFFF0F0F0); // เทาอ่อนมาก สำหรับพื้นหลัง TextField/Card
 
   // ฟังก์ชันจำลองการส่งคำขอรีเซ็ตรหัสผ่าน
   void _sendResetLink() {
@@ -58,17 +60,23 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // กำหนดสีของข้อความและไอคอนบนพื้นหลังขาว
+    final Color _onLightBackground = Colors.black87; 
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ลืมรหัสผ่าน', style: TextStyle(color: Colors.white)),
-        backgroundColor: _darkBackgroundColor, // ให้เป็นสีเดียวกับพื้นหลัง
-        iconTheme: const IconThemeData(color: Colors.white), // สีของปุ่มย้อนกลับ
-        elevation: 0,
+        // สีตัวอักษรเป็นสีดำ
+        title: Text('ลืมรหัสผ่าน', style: TextStyle(color: _onLightBackground)), 
+        // พื้นหลัง AppBar เป็นสีขาว
+        backgroundColor: _lightBackgroundColor, 
+        // สีของปุ่มย้อนกลับเป็นสีดำ
+        iconTheme: IconThemeData(color: _onLightBackground), 
+        elevation: 0, // ลบเงาเพื่อความสะอาดตา
       ),
-      // กำหนดพื้นหลังหลักเป็นสีเข้ม
-      backgroundColor: _darkBackgroundColor,
+      // กำหนดพื้นหลังหลักเป็นสีขาว
+      backgroundColor: _lightBackgroundColor,
       
-      // *** Center: เพื่อให้ SingleChildScrollView ถูกจัดให้อยู่กึ่งกลางหน้าจอในแนวตั้ง ***
+      // Center: เพื่อให้ SingleChildScrollView ถูกจัดให้อยู่กึ่งกลางหน้าจอในแนวตั้ง
       body: Center(
         child: SingleChildScrollView(
           child: Padding(
@@ -76,7 +84,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                const SizedBox(height: 20), // ปรับลดขนาดลง
+                const SizedBox(height: 20),
                 
                 // ไอคอนแสดงการรีเซ็ต
                 Center(
@@ -84,17 +92,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
                 const SizedBox(height: 20),
                 
-                const Text(
+                Text(
                   'รีเซ็ตรหัสผ่าน',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+                  // สีตัวอักษรเป็นสีดำ
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: _onLightBackground), 
                 ),
                 const SizedBox(height: 10),
                 
                 Text(
                   'ป้อนอีเมลที่ลงทะเบียนไว้เพื่อรับลิงก์สำหรับรีเซ็ตรหัสผ่าน',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16, color: Colors.grey[400]),
+                  // สีตัวอักษรเป็นสีเทาเข้ม
+                  style: TextStyle(fontSize: 16, color: Colors.grey[600]), 
                 ),
                 const SizedBox(height: 40),
 
@@ -102,25 +112,29 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(color: Colors.white), 
+                  // สีตัวอักษรที่ป้อนเป็นสีดำ
+                  style: TextStyle(color: _onLightBackground), 
                   decoration: InputDecoration(
                     labelText: 'อีเมล',
-                    labelStyle: TextStyle(color: Colors.grey[500]),
+                    // สีของ Label และ Icon เป็นสีเทา
+                    labelStyle: TextStyle(color: Colors.grey[500]), 
                     hintText: 'your.email@example.com',
-                    hintStyle: TextStyle(color: Colors.grey[700]),
+                    hintStyle: TextStyle(color: Colors.grey[400]),
                     
-                    // การออกแบบฟิลด์ใน Dark Mode
+                    // การออกแบบฟิลด์ใน Light Mode (Clean UI)
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12), 
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide.none, // ไม่มีเส้นขอบเริ่มต้น
                     ),
-                    focusedBorder: OutlineInputBorder( 
+                    focusedBorder: OutlineInputBorder( // เส้นขอบเมื่อ Focus เป็นสี CI
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(color: _primaryColor, width: 2),
                     ),
                     filled: true,
-                    fillColor: _darkCardColor, 
-                    prefixIcon: Icon(Icons.email, color: Colors.grey[500]),
+                    // พื้นหลังฟิลด์เป็นสีเทาอ่อน
+                    fillColor: _lightCardColor, 
+                    // สีของ Icon เป็นสีเทา
+                    prefixIcon: Icon(Icons.email, color: Colors.grey[500]), 
                   ),
                 ),
                 const SizedBox(height: 30),
@@ -130,19 +144,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   onPressed: _sendResetLink,
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 56),
-                    backgroundColor: _primaryColor, 
-                    foregroundColor: Colors.white,
+                    backgroundColor: _primaryColor, // สีปุ่มเป็นสี CI
+                    foregroundColor: Colors.white, // สีตัวอักษรบนปุ่มเป็นสีขาว
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    elevation: 5,
+                    elevation: 5, // เพิ่มเงาเพื่อให้ดูนูนออกมาเล็กน้อย
                   ),
                   child: const Text(
                     'ส่งลิงก์รีเซ็ต',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
-                const SizedBox(height: 20), // ปรับลดขนาดลง
+                const SizedBox(height: 20),
               ],
             ),
           ),

@@ -16,11 +16,13 @@ class RoleSelectionScreen extends StatefulWidget {
 }
 
 class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
-  final Color _primaryColor = const Color(0xFF007AFF);
-  final Color _darkBackgroundColor = const Color(0xFF121212);
-  final Color _darkCardColor = const Color(0xFF1E1E1E);
+  // *** LIGHT MODE COLOR DEFINITIONS ***
+  final Color _primaryColor = const Color(0xFF007AFF); // สีน้ำเงินหลัก
+  final Color _lightBackgroundColor = Colors.white; // พื้นหลังสีขาว
+  final Color _lightCardColor = Colors.white; // พื้นหลัง Card สีขาว
+  final Color _onLightBackground = Colors.black87; // สีข้อความหลัก (เข้ม)
 
-  // *** ตัวแปรจำลองสถานะ PIN ที่จำเป็น (แก้ไขจุดที่เคย Error) ***
+  // *** ตัวแปรจำลองสถานะ PIN ที่จำเป็น ***
   bool _hasPinSet = false; 
   String? _userPin;
   // *************************************************************
@@ -28,6 +30,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   @override
   void initState() {
     super.initState();
+    // ตรวจสอบสถานะ PIN หลังจากวิดเจ็ตถูกสร้างเสร็จ
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkPinStatus());
   }
 
@@ -108,11 +111,11 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: _darkCardColor,
+          color: _lightCardColor, // Light Card Color
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.grey.withOpacity(0.3), // Shadow in Light Mode
               blurRadius: 10,
               offset: const Offset(0, 5),
             ),
@@ -126,8 +129,9 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                // *** แก้ไข: ใช้สีเข้มเพื่อให้เห็นข้อความบนพื้นหลังสีขาว ***
+                color: _onLightBackground, 
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -141,11 +145,15 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _darkBackgroundColor,
+      backgroundColor: _lightBackgroundColor,
       appBar: AppBar(
-        title: const Text('เลือกบทบาทการทำงาน', style: TextStyle(color: Colors.white)),
-        backgroundColor: _darkBackgroundColor,
-        elevation: 0,
+        title: Text(
+          'เลือกบทบาทการทำงาน', 
+          // *** แก้ไข: ใช้สีเข้มสำหรับหัวข้อใน Light Mode ***
+          style: TextStyle(color: _onLightBackground)
+        ),
+        backgroundColor: _lightBackgroundColor,
+        elevation: 1, // เพิ่ม elevation เล็กน้อย
         automaticallyImplyLeading: false, 
       ),
       body: Center(
@@ -156,12 +164,12 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
             children: [
               Text(
                 'สถานะ PIN: ${_hasPinSet ? 'ตั้งค่าแล้ว' : 'ต้องตั้งค่า!'}', 
-                style: TextStyle(fontSize: 18, color: _hasPinSet ? Colors.green : Colors.red),
+                style: TextStyle(fontSize: 18, color: _hasPinSet ? Colors.green.shade700 : Colors.red.shade700, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
               Text(
                 'คุณต้องการเข้าใช้งานในฐานะใด?',
-                style: TextStyle(fontSize: 20, color: Colors.grey[300]),
+                style: TextStyle(fontSize: 20, color: Colors.grey.shade700), // สีข้อความ Dark/Muted
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),

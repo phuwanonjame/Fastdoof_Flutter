@@ -25,9 +25,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   // 1. สีหลัก (CI Color) ของแอป: สีน้ำเงินสว่าง
   final Color _primaryColor = const Color(0xFF007AFF); 
 
-  // 2. สีพื้นหลังของ Dark Mode
-  final Color _darkBackgroundColor = const Color(0xFF121212); 
-  final Color _darkCardColor = const Color(0xFF1E1E1E); 
+  // 2. สีพื้นหลังของ Light Mode (ปรับตามที่ร้องขอ)
+  final Color _lightBackgroundColor = Colors.white; // สีขาว
+  final Color _lightCardColor = const Color(0xFFF0F0F0); // สีเทาอ่อนมาก สำหรับพื้นหลัง TextField
+  
+  // สีตัวอักษรหลักบนพื้นหลังสว่าง
+  final Color _onLightBackground = Colors.black87; 
 
   @override
   void initState() {
@@ -59,7 +62,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   // ฟังก์ชันจำลองการเข้าสู่ระบบด้วย QR Code (สมมติว่า QR Scanner ทำงานเสร็จแล้ว)
   void _loginWithQRCode() {
     // ในแอปจริง: โค้ดส่วนนี้จะถูกเรียกหลังจากการสแกนสำเร็จ
-    // ตัวอย่างการจำลองการสแกนสำเร็จ:
     ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('สแกน QR Code สำเร็จ! กำลังนำทาง...', style: TextStyle(color: Colors.white)),
@@ -99,26 +101,29 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         // ฟิลด์ Security Key
         TextField(
           controller: _securityKeyController,
-          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), 
+          // สีตัวอักษรที่ป้อนเป็นสีดำ
+          style: TextStyle(color: _onLightBackground, fontSize: 20, fontWeight: FontWeight.bold), 
           keyboardType: TextInputType.number,
           obscureText: true, // ซ่อน Pin
           decoration: InputDecoration(
             labelText: 'Security Key (รหัสพนักงาน/PIN)',
-            labelStyle: TextStyle(color: Colors.grey[500]),
+            // สี Label และ Hint
+            labelStyle: TextStyle(color: Colors.grey[600]), 
             hintText: 'ป้อนรหัส 4-6 หลัก',
-            hintStyle: TextStyle(color: Colors.grey[700]),
+            hintStyle: TextStyle(color: Colors.grey[400]),
             
+            // การออกแบบฟิลด์ใน Light Mode
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12), 
-              borderSide: BorderSide.none,
+              borderSide: BorderSide.none, // ไม่มีเส้นขอบเริ่มต้น
             ),
             focusedBorder: OutlineInputBorder( 
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: _primaryColor, width: 2), 
+              borderSide: BorderSide(color: _primaryColor, width: 2), // Focus สี CI
             ),
             filled: true,
-            fillColor: _darkCardColor, 
-            prefixIcon: Icon(Icons.vpn_key, color: Colors.grey[500]),
+            fillColor: _lightCardColor, // พื้นหลังฟิลด์สีเทาอ่อน
+            prefixIcon: Icon(Icons.vpn_key, color: Colors.grey[600]), // Icon สีเทาเข้ม
           ),
         ),
         const SizedBox(height: 30),
@@ -154,7 +159,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           const SizedBox(height: 20),
           Text(
             'สแกน QR Code พนักงาน',
-            style: TextStyle(fontSize: 18, color: Colors.grey[400]),
+            // สีตัวอักษรเป็นสีดำ/เทาเข้ม
+            style: TextStyle(fontSize: 18, color: Colors.grey[700]),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 40),
@@ -178,7 +184,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _darkBackgroundColor,
+      // พื้นหลังหลักสีขาว
+      backgroundColor: _lightBackgroundColor,
       
       body: Center(
         child: SingleChildScrollView(
@@ -195,13 +202,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 Text(
                   'FastFood',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: Colors.white),
+                  // สีตัวอักษรเป็นสีดำ
+                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: _onLightBackground),
                 ),
                 const SizedBox(height: 10),
                 Text(
                   'เข้าสู่ระบบพนักงาน',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16, color: Colors.grey[400]),
+                  // สีตัวอักษรเป็นสีเทาเข้ม
+                  style: TextStyle(fontSize: 16, color: Colors.grey[700]),
                 ),
                 const SizedBox(height: 40),
                 
@@ -209,8 +218,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 TabBar(
                   controller: _tabController,
                   indicatorColor: _primaryColor,
-                  labelColor: _primaryColor,
-                  unselectedLabelColor: Colors.grey,
+                  labelColor: _primaryColor, // สีป้ายที่เลือกเป็นสี CI
+                  unselectedLabelColor: Colors.grey[500], // สีป้ายที่ไม่ได้เลือกเป็นสีเทาอ่อน
                   tabs: const [
                     Tab(icon: Icon(Icons.lock), text: 'Security Key'),
                     Tab(icon: Icon(Icons.qr_code), text: 'QR Code'),
@@ -220,7 +229,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 
                 // Tab View
                 SizedBox(
-                  height: 300, // กำหนดความสูงเพื่อให้ TabBarView ไม่เกิด Overflow
+                  height: 300, 
                   child: TabBarView(
                     controller: _tabController,
                     children: [
@@ -236,7 +245,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   onPressed: _goToForgotPassword, 
                   child: Text(
                     'รายงานปัญหา/ลืม Security Key?',
-                    style: TextStyle(color: _primaryColor), 
+                    style: TextStyle(color: _primaryColor), // สีลิงก์เป็นสี CI
                   ),
                 ),
                 const SizedBox(height: 20), 

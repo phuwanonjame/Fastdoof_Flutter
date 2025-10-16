@@ -16,9 +16,12 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
   bool _isConfirming = false;
   String _message = 'ตั้งค่า PIN 6 หลัก';
 
-  final Color _primaryColor = const Color(0xFF007AFF);
-  final Color _darkBackgroundColor = const Color(0xFF121212);
-  final Color _keypadColor = const Color(0xFF1E1E1E);
+  // *** LIGHT MODE COLOR DEFINITIONS ***
+  final Color _primaryColor = const Color(0xFF007AFF); // สีน้ำเงินหลัก
+  final Color _lightBackgroundColor = Colors.white; // พื้นหลังสีขาว
+  final Color _onLightBackground = Colors.black87; // สีข้อความหลัก (เข้ม)
+  final Color _keypadBgColor = Colors.white; // พื้นหลังปุ่ม
+  final Color _keypadTextColor = Colors.black87; // สีตัวเลขบนปุ่ม
 
   // ฟังก์ชันสำหรับการกดตัวเลข
   void _onNumberTap(int number) {
@@ -95,7 +98,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
           height: 15,
           margin: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
-            color: filled ? _primaryColor : Colors.grey.withOpacity(0.5),
+            color: filled ? _primaryColor : Colors.grey.shade400, // Light Mode: จุดที่ว่างเป็นสีเทาอ่อน
             shape: BoxShape.circle,
           ),
         );
@@ -112,14 +115,24 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
         width: 70,
         height: 70,
         decoration: BoxDecoration(
-          color: _keypadColor,
+          // *** Keypad Light Mode Style ***
+          color: _keypadBgColor,
           shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 2), 
+            ),
+          ],
         ),
         alignment: Alignment.center,
         child: Text(
           number.toString(),
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            // *** Text color for Light Mode ***
+            color: _keypadTextColor,
             fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
@@ -133,7 +146,8 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
     final currentPin = _isConfirming ? _confirmPin : _pin;
     
     return Scaffold(
-      backgroundColor: _darkBackgroundColor,
+      // *** Scaffold Background Light Mode ***
+      backgroundColor: _lightBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 40.0),
@@ -142,12 +156,14 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
             children: [
               Column(
                 children: [
+                  // Icon สีหลัก
                   Icon(Icons.lock_open, size: 60, color: _primaryColor),
                   const SizedBox(height: 20),
                   Text(
                     _message,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      // *** Text color for Light Mode ***
+                      color: _onLightBackground,
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                     ),
@@ -205,7 +221,8 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                             width: 70,
                             height: 70,
                             alignment: Alignment.center,
-                            child: Icon(Icons.backspace_outlined, size: 30, color: Colors.grey[500]),
+                            // *** Icon color for Light Mode ***
+                            child: Icon(Icons.backspace_outlined, size: 30, color: Colors.grey[700]),
                           ),
                         ),
                       ],
