@@ -1,83 +1,18 @@
+// lib/features/auth/presentation/screens/order_detail_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
-// **********************************************
-// 1. MODELS ที่ใช้ในหน้านี้ (ปรับปรุง)
-// **********************************************
-
-// เพิ่ม Enum สำหรับประเภทการชำระเงิน
-enum PaymentType { cash, scan }
-
-// โมเดลสำหรับรายการอาหารที่สั่ง (✨ เพิ่ม orderSource)
-class OrderItem {
-  final String name;
-  final double price;
-  int quantity;
-  final String orderSource; // เช่น 'T1-Waiter', 'T1-DeviceA'
-
-  OrderItem({required this.name, required this.price, this.quantity = 1, required this.orderSource});
-
-  // ฟังก์ชันช่วยในการ Copy
-  OrderItem copyWith({int? quantity}) {
-    return OrderItem(
-      name: name,
-      price: price,
-      quantity: quantity ?? this.quantity,
-      orderSource: orderSource,
-    );
-  }
-}
-
-// โมเดลสำหรับเมนูทั้งหมด (จำลองฐานข้อมูล)
-class MenuItem {
-  final String name;
-  final double price;
-  final String category;
-
-  MenuItem({required this.name, required this.price, required this.category});
-}
-
-// โมเดลสำหรับ Order ที่ผูกกับโต๊ะ (✨ เพิ่ม tableName)
-class TableOrder {
-  final String orderId;
-  final int tableId;
-  final String tableName; // ✨ FIX: เพิ่ม tableName
-  List<OrderItem> items;
-  bool isPaid;
-  bool isComplete;
-
-  TableOrder({
-    required this.orderId,
-    required this.tableId,
-    required this.tableName, // ✨ FIX: ต้องใส่ใน constructor
-    required this.items,
-    this.isPaid = false,
-    this.isComplete = false,
-  });
-  
-  // ฟังก์ชันช่วยในการ Copy
-  TableOrder copyWith({
-    List<OrderItem>? items,
-    bool? isPaid,
-    bool? isComplete,
-  }) {
-    return TableOrder(
-      orderId: orderId,
-      tableId: tableId,
-      tableName: tableName, // tableName คงที่
-      items: items ?? this.items,
-      isPaid: isPaid ?? this.isPaid,
-      isComplete: isComplete ?? this.isComplete,
-    );
-  }
-}
+// 💡 IMPORT Model จากไฟล์กลาง:
+import '../../../../models/order_models.dart'; 
 
 // **********************************************
-// 2. WIDGET ใหม่: PaymentScreen (จัดการการชำระเงินแยกส่วน)
+// 1. WIDGET ใหม่: PaymentScreen (จัดการการชำระเงินแยกส่วน)
 // **********************************************
 class PaymentScreen extends StatefulWidget {
   final TableOrder currentOrder;
-  final Function(TableOrder) onOrderPaid; // Callback เพื่อส่ง Order ที่เหลือกลับไป
+  // Callback รับ Order ที่เหลือ, PaymentType, ยอดรวมที่จ่าย และ รายการที่ถูกชำระ
+  final Function(TableOrder, PaymentType, double, List<OrderItem>) onOrderPaid; 
 
   const PaymentScreen({
     super.key,
@@ -90,19 +25,19 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
-  // สถานะสำหรับการเลือกชำระเงิน
-  late List<OrderItem> _tempItems; // Order Items ที่ใช้ในการเลือก
-  PaymentType _selectedPaymentType = PaymentType.cash;
-  Set<String> _selectedSources = {}; // เก็บ orderSource ที่ถูกเลือก (เพื่อจ่ายแยกบิล)
+  late List<OrderItem> _tempItems; 
+  PaymentType _selectedPaymentType = PaymentType.cash; 
+  Set<String> _selectedSources = {}; 
 
   @override
   void initState() {
     super.initState();
+    // คัดลอกรายการมาเพื่อจัดการในหน้านี้ (ป้องกันการเปลี่ยน order เดิมก่อนจ่าย)
     _tempItems = List.from(widget.currentOrder.items);
     // เริ่มต้นเลือกรายการทั้งหมด
     _selectedSources.addAll(widget.currentOrder.items.map((e) => e.orderSource));
   }
-
+  
   // กลุ่มรายการสั่งตาม orderSource
   Map<String, List<OrderItem>> _groupItemsBySource() {
     Map<String, List<OrderItem>> grouped = {};
@@ -151,8 +86,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final remainingItems = _tempItems
         .where((item) => !_selectedSources.contains(item.orderSource))
         .toList();
+        
+    // 2. รายการที่ถูกจ่าย (ใช้สำหรับบันทึกประวัติและพิมพ์สลิป)
+    final paidItems = _tempItems
+        .where((item) => _selectedSources.contains(item.orderSource))
+        .toList();
 
-    // 2. สร้าง Order ใหม่
+
+    // 3. สร้าง Order ใหม่
     TableOrder newOrder;
     if (remainingItems.isEmpty) {
       // ชำระเงินทั้งหมด -> ปิดบิล
@@ -162,8 +103,45 @@ class _PaymentScreenState extends State<PaymentScreen> {
       newOrder = widget.currentOrder.copyWith(items: remainingItems, isPaid: false, isComplete: false);
     }
     
-    // แจ้งการอัปเดตกลับไปยัง OrderDetailScreen
-    widget.onOrderPaid(newOrder);
+    // แจ้งการอัปเดตกลับไปยัง OrderDetailScreen พร้อมรายการที่ถูกชำระ
+    widget.onOrderPaid(newOrder, _selectedPaymentType, total, paidItems);
+  }
+  
+  // *** ฟังก์ชันจำลองการพิมพ์สลิป ***
+  void _mockPrintReceipt(double total, PaymentType type, List<OrderItem> items) {
+     final paymentMethod = type == PaymentType.cash ? "เงินสด" : "สแกน QR";
+     
+     // ปิด Bottom Sheet ก่อน
+     Navigator.of(context).pop(); 
+     
+     // แสดง Modal จำลอง
+     showDialog(
+       context: context,
+       builder: (context) {
+         return AlertDialog(
+           title: const Text('✅ สลิปพร้อมพิมพ์', style: TextStyle(color: Colors.green)),
+           content: Column(
+             mainAxisSize: MainAxisSize.min,
+             crossAxisAlignment: CrossAxisAlignment.start,
+             children: [
+               const Text('จำลองการส่งข้อมูลใบเสร็จไปเครื่องพิมพ์:', style: TextStyle(fontWeight: FontWeight.bold)),
+               const Divider(),
+               Text('ยอดรวม: ${total.toStringAsFixed(2)} บาท'),
+               Text('วิธีชำระ: $paymentMethod'),
+               Text('รายการที่พิมพ์: ${items.length} ชนิด'),
+               const SizedBox(height: 10),
+               const Text('--- กำลังเชื่อมต่อ Bluetooth/LAN... ---'),
+             ],
+           ),
+           actions: [
+             TextButton(
+               onPressed: () => Navigator.of(context).pop(),
+               child: const Text('ปิด (ถือว่าพิมพ์แล้ว)'),
+             ),
+           ],
+         );
+       },
+     );
   }
 
   @override
@@ -277,6 +255,27 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       style: const TextStyle(fontSize: 18, color: Colors.white),
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  
+                  // *** ปุ่มพิมพ์สลิป (จำลอง) ***
+                  ElevatedButton.icon(
+                    onPressed: total > 0 
+                      ? () => _mockPrintReceipt(
+                            total, 
+                            _selectedPaymentType, 
+                            _tempItems.where((item) => _selectedSources.contains(item.orderSource)).toList()
+                          )
+                      : null,
+                    icon: const Icon(Icons.print_rounded, color: Colors.blueGrey),
+                    label: const Text('พิมพ์สลิปที่เลือก (Mock Print)'),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 45),
+                      backgroundColor: Colors.grey[200],
+                      foregroundColor: Colors.blueGrey[800],
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      elevation: 0,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -288,12 +287,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
 }
 
 // **********************************************
-// 3. WIDGET หลัก: OrderDetailScreen (แก้ไขฟังก์ชัน)
+// 2. WIDGET หลัก: OrderDetailScreen
 // **********************************************
 
 class OrderDetailScreen extends StatefulWidget {
   final int tableId;
   final String tableName;
+  final String tableQrCode; // รับ QR Code
   final TableOrder? currentOrder; 
   final Function(TableOrder order) onOrderUpdated;
 
@@ -301,6 +301,7 @@ class OrderDetailScreen extends StatefulWidget {
     super.key,
     required this.tableId,
     required this.tableName,
+    required this.tableQrCode, // เพิ่ม Required
     this.currentOrder,
     required this.onOrderUpdated,
   });
@@ -329,7 +330,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with TickerProvid
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
 
-    // 1. จำลอง Menu ทั้งหมด
+    // 1. จำลอง Menu ทั้งหมด (ใช้ MenuItem จาก order_models.dart)
     _fullMenu = [
       MenuItem(name: 'เบอร์เกอร์เนื้อ', price: 120.0, category: 'Main'),
       MenuItem(name: 'ฟิช แอนด์ ชิปส์', price: 95.0, category: 'Main'),
@@ -339,22 +340,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with TickerProvid
       MenuItem(name: 'นักเก็ตไก่ (6 ชิ้น)', price: 80.0, category: 'Side'),
     ];
 
-    // 2. กำหนด Order ปัจจุบัน
+    // 2. กำหนด Order ปัจจุบัน (ใช้ TableOrder จาก order_models.dart)
     if (widget.currentOrder != null) {
       _order = widget.currentOrder!;
     } else {
+      // โต๊ะว่าง: สร้าง Order ใหม่ โดยไม่มีรายการอาหารจำลอง
       _order = TableOrder(
         orderId: _uuid.v4(),
         tableId: widget.tableId,
-        tableName: widget.tableName, // ✨ FIX: ส่ง tableName ที่ถูกเพิ่มเข้ามา
-        items: [
-          // ✨ เพิ่มรายการเริ่มต้นพร้อม Source จำลอง
-          OrderItem(name: 'เบอร์เกอร์เนื้อ', price: 120.0, quantity: 1, orderSource: 'T${widget.tableId}-Waiter'),
-          OrderItem(name: 'น้ำอัดลม', price: 35.0, quantity: 2, orderSource: 'T${widget.tableId}-DeviceA'),
-          OrderItem(name: 'ฟิช แอนด์ ชิปส์', price: 95.0, quantity: 1, orderSource: 'T${widget.tableId}-DeviceA'),
-          OrderItem(name: 'กาแฟเย็น', price: 60.0, quantity: 1, orderSource: 'T${widget.tableId}-DeviceB'),
-        ],
+        tableName: widget.tableName, 
+        items: [], // เริ่มต้นด้วยรายการว่างเปล่า
       );
+      
       // ส่ง Order ใหม่กลับไป WaiterScreen ทันทีที่มีการสร้าง
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _updateOrderCallback();
@@ -390,7 +387,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with TickerProvid
       if (existingItem.name.isNotEmpty) {
         existingItem.quantity++;
       } else {
-        // ✨ กำหนด orderSource เป็น 'T(tableId)-Waiter' สำหรับรายการที่เพิ่มผ่านหน้านี้
+        // กำหนด orderSource เป็น 'T(tableId)-Waiter' สำหรับรายการที่เพิ่มผ่านหน้านี้
         _order.items.add(OrderItem(name: item.name, price: item.price, orderSource: 'T${widget.tableId}-Waiter'));
       }
       _updateOrderCallback();
@@ -410,21 +407,53 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with TickerProvid
   void _updateOrderCallback() {
     widget.onOrderUpdated(_order);
   }
+  
+  // ฟังก์ชันใหม่: ส่งออเดอร์ไปครัว
+  void _sendToKitchen() {
+    setState(() {
+      _order = _order.copyWith(isSentToKitchen: true); // อัปเดตสถานะ
+    });
+    _updateOrderCallback();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('ส่งออเดอร์ไปห้องครัวแล้ว'), backgroundColor: Colors.orange),
+    );
+  }
 
   // ******************************
-  // ฟังก์ชันปิดบิล / ชำระเงิน (แก้ไขใหม่)
+  // ฟังก์ชันปิดบิล / ชำระเงิน
   // ******************************
   void _checkout() {
+    // ต้องมี currentOrder ก่อน เพื่อใช้ OrderId ในการบันทึก History
+    if (widget.currentOrder == null) return;
     _showPaymentSheet();
   }
 
-  void _confirmPayment(TableOrder updatedOrder) {
+  // ปรับ Callback รับ 4 ค่า: updatedOrder, paymentType, paidGrandTotal, paidItems
+  void _confirmPayment(TableOrder updatedOrder, PaymentType paymentType, double paidGrandTotal, List<OrderItem> paidItems) {
     setState(() {
       _order = updatedOrder; // อัปเดต Order ด้วยรายการที่เหลือ
     });
 
-    // แสดง SnackBar
     if (updatedOrder.isComplete) {
+        // *** 1. บันทึกประวัติเมื่อปิดบิลและรายการเหลือ 0 แล้วเท่านั้น ***
+        
+        // รายการที่ถูกจ่าย คือ paidItems ที่ส่งมาจาก PaymentScreen
+        final List<OrderItem> itemsPaid = List.from(paidItems);
+
+        final OrderHistory historyRecord = OrderHistory(
+            historyId: const Uuid().v4(),
+            orderId: widget.currentOrder!.orderId, 
+            tableName: widget.tableName,
+            qrCode: widget.tableQrCode, 
+            items: itemsPaid, 
+            grandTotal: paidGrandTotal, 
+            paymentTime: DateTime.now(),
+            paymentType: paymentType,
+        );
+        
+        // 2. บันทึกเข้า Global History
+        globalOrderHistory.add(historyRecord);
+        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('ชำระเงินและปิดบิลเรียบร้อยแล้ว'), backgroundColor: Colors.green),
         );
@@ -438,7 +467,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with TickerProvid
     }
   }
   
-  // ✨ สร้าง Payment Bottom Sheet ใหม่
+  // สร้าง Payment Bottom Sheet ใหม่
   void _showPaymentSheet() {
     showModalBottomSheet(
       context: context,
@@ -446,9 +475,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with TickerProvid
       builder: (context) {
         return PaymentScreen(
           currentOrder: _order,
-          onOrderPaid: (updatedOrder) {
-            Navigator.of(context).pop(); // ปิด Bottom Sheet
-            _confirmPayment(updatedOrder);
+          // ส่ง 4 ค่าเข้า _confirmPayment
+          onOrderPaid: (updatedOrder, paymentType, paidGrandTotal, paidItems) { 
+            // ไม่ต้องปิด Bottom Sheet ตรงนี้ เพราะ _processPayment ใน PaymentScreen จะทำเอง
+            _confirmPayment(updatedOrder, paymentType, paidGrandTotal, paidItems); 
           },
         );
       },
@@ -486,7 +516,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with TickerProvid
                   style: TextStyle(color: _onLightBackground, fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 Text(
-                  // ✨ แสดง Order Source
+                  // แสดง Order Source
                   'Source: ${item.orderSource}', 
                   style: TextStyle(color: Colors.blueGrey, fontSize: 12),
                 ),
@@ -587,6 +617,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with TickerProvid
   }
   
   Widget _buildOrderListPanel() {
+    // ใช้ Getter ที่ปลอดภัย safeIsSentToKitchen
+    final bool canSendToKitchen = !_order.safeIsSentToKitchen && _order.items.isNotEmpty;
+    final bool canCheckout = _order.items.isNotEmpty;
+    
     return Column(
       children: [
         Expanded(
@@ -606,8 +640,28 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with TickerProvid
         _buildTotalSummary(),
         const SizedBox(height: 20),
         
+        // ปุ่มส่งออเดอร์ไปครัว (แสดงเมื่อยังไม่ถูกส่งเท่านั้น)
+        if (!_order.safeIsSentToKitchen) ...[
+          ElevatedButton.icon(
+            onPressed: canSendToKitchen ? _sendToKitchen : null,
+            icon: const Icon(Icons.send_rounded, color: Colors.white),
+            label: const Text(
+              'ส่งออเดอร์ไปครัว',
+              style: TextStyle(fontSize: 18),
+            ),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 60),
+              backgroundColor: Colors.orange.shade700, 
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+        
+        // ปุ่มชำระเงิน/ปิดบิล
         ElevatedButton.icon(
-          onPressed: _order.items.isEmpty ? null : _checkout, // 💡 เรียก _checkout() เพื่อเปิด Payment Sheet
+          onPressed: canCheckout ? _checkout : null, // เรียก _checkout() เพื่อเปิด Payment Sheet
           icon: const Icon(Icons.payment, color: Colors.white),
           label: Text(
             'ชำระเงิน / ปิดบิล (${_grandTotal.toStringAsFixed(2)} บาท)',
@@ -625,6 +679,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with TickerProvid
   }
   
   Widget _buildMenuSelectionPanel() {
+    // จัดกลุ่มเมนูตาม Category
+    final Map<String, List<MenuItem>> groupedMenu = {};
+    for (var item in _fullMenu) {
+      groupedMenu.putIfAbsent(item.category, () => []).add(item);
+    }
+    
     return Container(
       padding: const EdgeInsets.all(8.0),
       color: _lightBackgroundColor,
@@ -639,8 +699,26 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with TickerProvid
           
           Expanded(
             child: SingleChildScrollView(
-              child: Wrap(
-                children: _fullMenu.map(_buildMenuButton).toList(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: groupedMenu.entries.map((entry) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10.0, bottom: 5),
+                        child: Text(
+                          entry.key,
+                          style: TextStyle(color: _primaryColor, fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      Wrap(
+                        children: entry.value.map(_buildMenuButton).toList(),
+                      ),
+                      Divider(),
+                    ],
+                  );
+                }).toList(),
               ),
             ),
           ),
