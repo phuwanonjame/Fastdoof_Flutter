@@ -404,6 +404,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with TickerProvid
     });
   }
   
+  // *** ฟังก์ชันใหม่: ยกเลิกรายการ (สมมติ: เมนูหมด) ***
+  void _cancelItem(OrderItem item) {
+    setState(() {
+      _order.items.remove(item);
+      _updateOrderCallback();
+    });
+    // แสดง SnackBar แจ้งว่ายกเลิกแล้ว
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('ยกเลิกรายการ "${item.name}" แล้ว'),
+        backgroundColor: Colors.red.shade700,
+      ),
+    );
+  }
+  
   void _updateOrderCallback() {
     widget.onOrderUpdated(_order);
   }
@@ -526,6 +541,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with TickerProvid
           
           Row(
             children: [
+              // *** ปุ่มยกเลิกรายการ (เพิ่มเข้ามา) ***
+              IconButton(
+                icon: Icon(Icons.cancel_outlined, color: Colors.red.shade900, size: 24),
+                onPressed: () => _cancelItem(item), // เรียกฟังก์ชันยกเลิก
+                tooltip: 'ยกเลิกรายการ (เมนูหมด/ลูกค้ายกเลิก)',
+              ),
+              
               IconButton(
                 icon: Icon(Icons.remove_circle_outline, color: Colors.red.shade600),
                 onPressed: () => _updateQuantity(item, -1),
